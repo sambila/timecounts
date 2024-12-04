@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="pt">
+	<head>
+		    <meta charset="UTF-8">
+		        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+			    <title>Saiba.ao Timer</title>
+			        <style>
+        /* Vorheriges CSS bleibt unverändert */
+        .notification-banner {
+		            position: fixed;
+			                top: 20px;
+					            right: 20px;
+						                background-color: #fb6a03;
+								            color: #012367;
+									                padding: 15px;
+											            border-radius: 8px;
+												                z-index: 1000;
+														            display: none;
+															            }
+	    </style>
+	</head>
+	<body>
+		    <div id="notification-banner" class="notification-banner">
+			            Clique aqui para ativar as notificações!
+				        </div>
+					    <!-- Vorheriger HTML-Code bleibt unverändert -->
+
+					        <!-- Timer Worker Code -->
+						    <script id="worker" type="javascript/worker">
+							            // This code will be extracted and run in a Web Worker
+							            let timers = new Map();
+
+        self.onmessage = function(e) {
+		            switch(e.data.command) {
+				                    case 'start':
+					                        timers.set(e.data.id, {
+									                        time: e.data.time,
+									                        isRunning: true
+									                    });
+					                        break;
+					                    case 'stop':
+					                        timers.delete(e.data.id);
+					                        break;
+					                    case 'pause':
+					                        if (timers.has(e.data.id)) {
+									                        timers.get(e.data.id).isRunning = false;
+									                    }
+					                        break;
+					                    case 'resume':
+					                        if (timers.has(e.data.id)) {
+									                        timers.get(e.data.id).isRunning = true;
+									                    }
+					                        break;
+					                }
+		        };
+
+        setInterval(() => {
+		            timers.forEach((timer, id) => {
+				                    if (timer.isRunning) {
+							                        timer.time--;
+							                        self.postMessage({
+											                        id: id,
+											                        time: timer.time
+											                    });
+							                    }
+				                });
+		        }, 1000);
+    </script>
+
+        <script>
+		        // Create Web Worker from inline script
+		        const blob = new Blob([document.querySelector('#worker').textContent], { type: 'text/javascript' });
+        const worker = new Worker(URL.createObjectURL(blob));
+
+        // Request notification permission
+        let notificationPermission = false;
+        const notificationBanner = document.getElementById('notification-banner');
+
+        if ('Notification' in window) {
+		            if (Notification.permission === 'granted') {
+				                    notificationPermission = true;
+				                } else if (Notification.permission !== 'denied') {
+							                notificationBanner.style.display = 'block';
+							                notificationBanner.onclick = async () => {
+										                    const permission = await Notification.requestPermission();
+										                    notificationPermission = permission === 'granted';
+										                    notificationBanner.style.display = 'none';
+										                };
+							            }
+		        }
+
+        // Handle Web Worker messages
+        worker.onmessage = function(e) {
+		            const station = stations.find(s => s.id === e.data.id);
+		            if (station) {
+				                    station.time = e.data.time;
+				                    updateStation(station);
+
+				                    // Check for alerts
+				                    if (station.time === 300 && !station.alertPlaying) { // 5 minutes warning
+							                        playAlert(station.sound);
+							                        station.alertPlaying = true;
+							                        if (notificationPermission) {
+											                        new Notification(`${station.name} - 5 minutos restantes`, {
+															                            body: 'O tempo está quase acabando!',
+															                            icon: 'https://sambila.net/logo.jpg'
+															                        });
+											                    }
+							                    }
+
+				                    if (station.time <= 0) {
+							                        stopStation(station.id);
+							                        if (notificationPermission) {
+											                        new Notification(`${station.name} - Tempo esgotado`, {
+															                            body: 'O tempo terminou!',
+															                 
