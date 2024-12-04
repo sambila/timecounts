@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Time Counter</title>
+    <link rel="stylesheet" href="styles/main.css">
+</head>
+<body>
+    <button 
+        id="notification-banner"
+        class="notification-banner" 
+        aria-label="Enable notifications"
+        role="alert">
+        Click here to enable notifications!
+    </button>
+
+    <div class="timer-container">
+        <div id="stations-container"></div>
+    </div>
+
+    <script id="worker-script" type="text/worker">
+        // Worker script will be injected here
+    </script>
+
+    <script src="js/notificationManager.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>
